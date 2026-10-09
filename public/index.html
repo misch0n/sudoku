@@ -2,11 +2,143 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="A calm, friction-free Sudoku. Fresh puzzles graded by the techniques they need.">
   <title>Sudoku</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233b5bdb'/%3E%3Cpath d='M11 1v30M21 1v30M1 11h30M1 21h30' stroke='%23fff' stroke-opacity='.45' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" src="js/app.js"></script>
 </head>
 <body>
-  <h1>Sudoku</h1>
-  <p>Coming soon.</p>
+  <div class="app">
+    <header class="topbar">
+      <h1 class="brand">Sudoku</h1>
+      <div class="status">
+        <span id="difficulty-label" class="chip"></span>
+        <button id="timer" class="timer" type="button" aria-label="Pause">
+          <span id="timer-text">0:00</span>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path id="timer-icon" d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg>
+        </button>
+      </div>
+      <nav class="menu">
+        <button id="btn-new" class="btn btn-primary" type="button">New game</button>
+        <button id="btn-history" class="icon-btn" type="button" aria-label="History and stats" title="History and stats">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4V11H4zm6 0h4V4h-4zm6 0h4v-6h-4z"/></svg>
+        </button>
+        <button id="btn-settings" class="icon-btn" type="button" aria-label="Settings" title="Settings">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1L11 21h4l.4-2.9c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+        </button>
+      </nav>
+    </header>
+
+    <main class="play">
+      <div class="board-wrap">
+        <div id="board" class="board" role="grid" aria-label="Sudoku board"></div>
+        <div id="pause-cover" class="pause-cover" hidden>
+          <p>Paused</p>
+          <button id="btn-resume" class="btn btn-primary" type="button">Resume</button>
+        </div>
+      </div>
+
+      <aside class="controls">
+        <p id="hint-text" class="hint-text" aria-live="polite" hidden></p>
+
+        <div class="tools">
+          <button id="btn-undo" class="tool" type="button" title="Undo (Ctrl+Z)">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 8c-2.6 0-5 1-6.9 2.6L2 7v9h9l-3.6-3.6A7.5 7.5 0 0 1 19.5 16l2.4-.8A10 10 0 0 0 12.5 8z"/></svg>
+            <span>Undo</span>
+          </button>
+          <button id="btn-erase" class="tool" type="button" title="Erase (Backspace)">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.2 3.6 21.4 9a2 2 0 0 1 0 2.8L13 20h8v2H8.4l-4.8-4.8a2 2 0 0 1 0-2.8L13.4 3.6a2 2 0 0 1 2.8 0zM5 16l3.4 3.4h2.8l3.2-3.2-5.6-5.6z"/></svg>
+            <span>Erase</span>
+          </button>
+          <button id="btn-notes" class="tool" type="button" aria-pressed="false" title="Notes (N)">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.3V21h3.7L17.8 9.9l-3.7-3.7zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.7 3.7z"/></svg>
+            <span>Notes <b id="notes-state">off</b></span>
+          </button>
+          <button id="btn-hint" class="tool" type="button" title="Hint (H)">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21h6v-1H9zm3-19a7 7 0 0 0-4 12.7V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.3A7 7 0 0 0 12 2z"/></svg>
+            <span>Hint</span>
+          </button>
+        </div>
+
+        <div id="numpad" class="numpad" aria-label="Digits"></div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- New game -->
+  <dialog id="dlg-new" class="dialog">
+    <form method="dialog" class="dialog-body">
+      <h2>New game</h2>
+      <div id="difficulty-list" class="difficulty-list"></div>
+      <details class="import">
+        <summary>Play a puzzle from elsewhere</summary>
+        <p class="muted">Paste 81 digits, using 0 or . for blanks. We check it has exactly one solution and grade it.</p>
+        <textarea id="import-text" rows="3" spellcheck="false" placeholder="53..7....6..195....98....6.8...6...34..8.3..17...2...6.6....28....419..5....8..79"></textarea>
+        <p id="import-error" class="error" hidden></p>
+        <button id="btn-import" class="btn" type="button">Play this puzzle</button>
+      </details>
+      <div class="dialog-actions">
+        <button id="btn-new-cancel" class="btn" value="cancel">Back to game</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Result -->
+  <dialog id="dlg-result" class="dialog">
+    <form method="dialog" class="dialog-body">
+      <h2 id="result-title"></h2>
+      <p id="result-text"></p>
+      <dl id="result-stats" class="result-stats"></dl>
+      <div id="result-actions" class="dialog-actions"></div>
+    </form>
+  </dialog>
+
+  <!-- History -->
+  <dialog id="dlg-history" class="dialog dialog-wide">
+    <form method="dialog" class="dialog-body">
+      <h2>History</h2>
+      <div id="stats" class="stats"></div>
+      <ol id="history-list" class="history-list"></ol>
+      <div class="dialog-actions">
+        <button class="btn" value="close">Close</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Settings -->
+  <dialog id="dlg-settings" class="dialog">
+    <form method="dialog" class="dialog-body" id="settings-form">
+      <h2>Settings</h2>
+      <fieldset>
+        <legend>Mistakes</legend>
+        <label class="radio"><input type="radio" name="feedback" value="conflicts"> <span><b>Show rule breaks</b><small>Flag a digit already in the same row, column or box.</small></span></label>
+        <label class="radio"><input type="radio" name="feedback" value="solution"> <span><b>Show wrong digits</b><small>Flag any digit that doesn't match the solution.</small></span></label>
+        <label class="radio"><input type="radio" name="feedback" value="off"> <span><b>Check at the end</b><small>No help until the board is full.</small></span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Assistance</legend>
+        <label class="switch"><input type="checkbox" name="highlightSame"> <span>Highlight matching digits</span></label>
+        <label class="switch"><input type="checkbox" name="autoNotes"> <span>Clear notes when a digit is placed</span></label>
+        <label class="switch"><input type="checkbox" name="showTimer"> <span>Show timer</span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Theme</legend>
+        <div class="segmented">
+          <label><input type="radio" name="theme" value="auto"><span>Auto</span></label>
+          <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+          <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+        </div>
+      </fieldset>
+      <p class="muted small">Keyboard: arrows to move, 1–9 to place, Shift+1–9 for a note, N toggles notes, Backspace erases, H for a hint, Ctrl+Z / Ctrl+Y to undo and redo.</p>
+      <div class="dialog-actions">
+        <button class="btn btn-primary" value="close">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 </body>
 </html>
